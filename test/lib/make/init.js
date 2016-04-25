@@ -246,7 +246,7 @@ describe('make/init', function () {
         it('should instantiate shared resources with path to temp dir', function () {
             return init_({ projectPath: '/path/to/project' })
                 .then(function () {
-                    expect(SharedResources.prototype.__constructor).to.be.calledWith({
+                    expect(SharedResources.prototype.__constructor).to.be.calledWithMatch({
                         tmpDir: '/path/to/project/.enb/tmp'
                     });
                 });

@@ -6,6 +6,7 @@ var _ = require('lodash');
 var MakePlatform = require('../../../lib/make');
 var CacheStorage = require('../../../lib/cache/cache-storage');
 var ProjectConfig = require('../../../lib/config/project-config');
+var FileCache = require('../../../lib/shared-resources/file-cache');
 
 describe('make/cache', function () {
     var sandbox = sinon.sandbox.create();
@@ -16,6 +17,7 @@ describe('make/cache', function () {
         sandbox.stub(fs, 'statSync');
 
         sandbox.stub(ProjectConfig.prototype);
+        sandbox.stub(FileCache.prototype);
 
         cacheStorage = sinon.createStubInstance(CacheStorage);
     });
@@ -26,6 +28,10 @@ describe('make/cache', function () {
     });
 
     describe('loadCache', function () {
+        beforeEach(function () {
+            sandbox.stub(MakePlatform.prototype, 'dropCache');
+        });
+
         it('should load data from cache storage', function () {
             return setup(cacheStorage)
                 .then(function (makePlatform) {
@@ -40,7 +46,7 @@ describe('make/cache', function () {
                 .then(function (makePlatform) {
                     makePlatform.loadCache();
 
-                    expect(cacheStorage.drop).to.be.not.called;
+                    expect(MakePlatform.prototype.dropCache).to.be.not.called;
                 });
         });
 
@@ -52,7 +58,7 @@ describe('make/cache', function () {
                 .then(function (makePlatform) {
                     makePlatform.loadCache();
 
-                    expect(cacheStorage.drop).to.be.called;
+                    expect(MakePlatform.prototype.dropCache).to.be.called;
                 });
         });
 
@@ -64,7 +70,7 @@ describe('make/cache', function () {
                 .then(function (makePlatform) {
                     makePlatform.loadCache();
 
-                    expect(cacheStorage.drop).to.be.called;
+                    expect(MakePlatform.prototype.dropCache).to.be.called;
                 });
         });
 
@@ -76,7 +82,7 @@ describe('make/cache', function () {
                 .then(function (makePlatform) {
                     makePlatform.loadCache();
 
-                    expect(cacheStorage.drop).to.be.called;
+                    expect(MakePlatform.prototype.dropCache).to.be.called;
                 });
         });
     });
@@ -152,6 +158,15 @@ describe('make/cache', function () {
                     expect(cacheStorage.drop).to.be.called;
                 });
         });
+
+        it('should drop file cache', function () {
+            return setup(cacheStorage)
+                .then(function (makePlatform) {
+                    makePlatform.dropCache();
+
+                    expect(FileCache.prototype.drop).to.be.called;
+                });
+        });
     });
 });
 
@@ -193,12 +208,12 @@ function setup(cacheStorage, settings) {
 
     ProjectConfig.prototype.getIncludedConfigFilenames.returns([settings.makeFile]);
 
+    clearRequire('../../../package.json');
     mockFs({
         'package.json': '{ "version": "' + settings.currentENBVersion + '" }'
     });
 
     var makePlatform = new MakePlatform();
-    clearRequire('../../../package.json');
     return makePlatform.init(projectDir, settings.currentMakePlatformMode, _.noop)
         .then(function () {
             makePlatform.setCacheStorage(cacheStorage);

@@ -21,19 +21,26 @@ describe('shared-resources/file-cache', function () {
         sandbox.restore();
     });
 
+    function mkFileCache_(opts) {
+        opts = _.defaults(opts || {}, {
+            tmpDir: '/some/default/dir',
+        });
+
+        return new FileCache(opts);
+    }
+
     describe('get', function () {
         beforeEach(function () {
-            vowFs.read.returns(vow.resolve());
+            vowFs.read.returns(vow.resolve('some-default-content'));
         });
 
         function get_(opts) {
             opts = _.defaults(opts || {}, {
                 key: 'some-default-key',
-                mtime: 100500,
-                tmpDir: '/some/default/dir'
+                mtime: 100500
             });
 
-            var fileCache = new FileCache(opts.tmpDir);
+            var fileCache = opts.fileCache || mkFileCache_(opts);
             return fileCache.get(opts.key, opts.mtime);
         }
 
@@ -75,6 +82,38 @@ describe('shared-resources/file-cache', function () {
                     expect(val).to.be.equal('some-content');
                 });
         });
+
+        describe('if cache dropped', function () {
+            var LAUNCH_TIME = 3,
+                fileCache;
+
+            beforeEach(function () {
+                sandbox.stub(Date, 'now').returns(LAUNCH_TIME);
+
+                fileCache = mkFileCache_();
+                fileCache.drop();
+            });
+
+            it('should return null even if cached file valid', function () {
+                fsUtil.getFileInfo.returns({ mtime: LAUNCH_TIME - 1 });
+
+                return get_({ mtime: 1, fileCache: fileCache })
+                    .then(function (val) {
+                        expect(val).to.be.equal(null);
+                        expect(vowFs.read).not.to.be.called;
+                    });
+            });
+
+            it('should read file if file was cached during current launch', function () {
+                fsUtil.getFileInfo.returns({ mtime: LAUNCH_TIME + 1 });
+
+                return get_({ mtime: 1, fileCache: fileCache })
+                    .then(function (val) {
+                        expect(val).to.be.not.equal(null);
+                        expect(vowFs.read).to.be.called;
+                    });
+            });
+        });
     });
 
     describe('put', function () {
@@ -83,18 +122,13 @@ describe('shared-resources/file-cache', function () {
             vowFs.write.returns(vow.resolve());
         });
 
-        function mkFileCache_(tmpDir) {
-            return new FileCache(tmpDir || '/some/default/dir');
-        }
-
         function put_(opts) {
             opts = _.defaults(opts || {}, {
                 key: 'some-default-key',
-                content: 'some-default-content',
-                tmpDir: '/some/default/dir'
+                content: 'some-default-content'
             });
 
-            var fileCache = opts.fileCache || mkFileCache_(opts.tmpDir);
+            var fileCache = opts.fileCache || mkFileCache_(opts);
             return fileCache.put(opts.key, opts.content);
         }
 
@@ -111,6 +145,18 @@ describe('shared-resources/file-cache', function () {
                         path.join('/tmp/dir', 'file-cache', 'some_path'),
                         'some-content'
                     );
+                });
+        });
+
+        it('should write file even if cache not used', function () {
+            var fileCache = mkFileCache_();
+            fileCache.drop();
+
+            fsUtil.mkHash.withArgs('some/path').returns('some_path');
+
+            return put_({ fileCache: fileCache })
+                .then(function () {
+                    expect(vowFs.write).to.be.called;
                 });
         });
 
