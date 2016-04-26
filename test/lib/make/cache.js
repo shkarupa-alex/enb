@@ -1,12 +1,13 @@
 var fs = require('fs');
 var path = require('path');
-var mockFs = require('mock-fs');
-var clearRequire = require('clear-require');
 var _ = require('lodash');
 var MakePlatform = require('../../../lib/make');
 var CacheStorage = require('../../../lib/cache/cache-storage');
 var ProjectConfig = require('../../../lib/config/project-config');
 var FileCache = require('../../../lib/shared-resources/file-cache');
+var pkg = require('../../../lib/utils/package');
+var vowFs = require('vow-fs');
+var vow = require('vow');
 
 describe('make/cache', function () {
     var sandbox = sinon.sandbox.create();
@@ -19,12 +20,15 @@ describe('make/cache', function () {
         sandbox.stub(ProjectConfig.prototype);
         sandbox.stub(FileCache.prototype);
 
+        sandbox.stub(pkg);
+
+        sandbox.stub(vowFs, 'makeDir').returns(vow.resolve());
+
         cacheStorage = sinon.createStubInstance(CacheStorage);
     });
 
     afterEach(function () {
         sandbox.restore();
-        mockFs.restore();
     });
 
     describe('loadCache', function () {
@@ -208,10 +212,7 @@ function setup(cacheStorage, settings) {
 
     ProjectConfig.prototype.getIncludedConfigFilenames.returns([settings.makeFile]);
 
-    clearRequire('../../../package.json');
-    mockFs({
-        'package.json': '{ "version": "' + settings.currentENBVersion + '" }'
-    });
+    pkg.version.returns(settings.currentENBVersion);
 
     var makePlatform = new MakePlatform();
     return makePlatform.init(projectDir, settings.currentMakePlatformMode, _.noop)
