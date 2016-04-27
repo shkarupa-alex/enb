@@ -962,6 +962,7 @@ node.getSharedResources
 
 Набор ресурсов, которые могут быть использованы в технологиях:
 - [JobQueue](lib/shared-resources/job-queue/index.js) - пул дочерних процессов для выполнения "тяжелых" задач
+- [FileCache](lib/shared-resources/file-cache.js) - файловый кэш
 
 **Пример**
 
