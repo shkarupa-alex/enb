@@ -17,7 +17,6 @@ var ModeConfig = require('../../../lib/config/mode-config');
 var Logger = require('../../../lib/logger');
 var BuildGraph = require('../../../lib/ui/build-graph');
 var CacheStorage = require('../../../lib/cache/cache-storage');
-var SharedResources = require('../../../lib/shared-resources');
 
 describe('make/init', function () {
     var makePlatform;
@@ -27,7 +26,6 @@ describe('make/init', function () {
         sandbox.stub(vowFs);
         sandbox.stub(Node.prototype);
         sandbox.stub(ProjectConfig.prototype);
-        sandbox.stub(SharedResources.prototype);
 
         vowFs.makeDir.returns(vow.fulfill()); // prevent temp dir creation on MakePlatform.init()
 
@@ -239,34 +237,11 @@ describe('make/init', function () {
         it('should instantiate cache storage with path to cache file located in temp dir', function () {
             return init_({ projectPath: '/path/to/project' }).then(function () {
                 expect(makePlatform.getCacheStorage())
-                    .to.be.deep.equal(new CacheStorage(path.normalize('/path/to/project/.enb/tmp/cache.json')));
+                    .to.be.deep.equal(new CacheStorage({
+                        tmpDir: path.normalize('/path/to/project/.enb/tmp'),
+                        filename: 'cache.json'
+                    }));
             });
-        });
-
-        it('should instantiate shared resources with path to temp dir', function () {
-            return init_({ projectPath: '/path/to/project' })
-                .then(function () {
-                    expect(SharedResources.prototype.__constructor).to.be.calledWithMatch({
-                        tmpDir: '/path/to/project/.enb/tmp'
-                    });
-                });
-        });
-
-        it('should instantiate shared resources after temp dir was created', function () {
-            var mediator = sinon.spy().named(mediator);
-            vowFs.makeDir.returns(vow.resolve().then(mediator));
-
-            return init_({ projectPath: '/path/to/project' }).then(function () {
-                expect(SharedResources.prototype.__constructor).to.be.calledAfter(mediator);
-            });
-        });
-
-        it('should desctruct shared resources if they were initialized', function () {
-            return init_()
-                .then(function () {
-                    makePlatform.destruct();
-                    expect(SharedResources.prototype.destruct).to.be.called;
-                });
         });
     });
 

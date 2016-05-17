@@ -1,7 +1,7 @@
 'use strict';
 
 var fsUtil = require('../../../lib/fs/fs-util'),
-    FileCache = require('../../../lib/shared-resources/file-cache'),
+    FileCache = require('../../../lib/cache/file-cache'),
     vowFs = require('vow-fs'),
     vow = require('vow'),
     _ = require('lodash'),

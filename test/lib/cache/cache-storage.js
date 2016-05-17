@@ -2,7 +2,9 @@ var vow = require('vow');
 var fs = require('fs');
 var path = require('path');
 var mockFs = require('mock-fs');
+var _ = require('lodash');
 var CacheStorage = require('../../../lib/cache/cache-storage');
+var FileCache = require('../../../lib/cache/file-cache');
 
 describe('cache/cache-storage', function () {
     var sandbox = sinon.sandbox.create();
@@ -18,11 +20,24 @@ describe('cache/cache-storage', function () {
         });
 
         it('should save filename', function () {
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.load();
 
             expect(fs.existsSync).to.be.calledWith('/path/to/test_file.json');
+        });
+
+        it('should create FileCache instance', function () {
+            var fileCacheStub = sinon.createStubInstance(FileCache);
+            sandbox.stub(FileCache.prototype, '__constructor').returns(fileCacheStub);
+
+            var storage = createCacheStorage_({ tmpDir: '/path/to/tmp' });
+
+            expect(FileCache.prototype.__constructor).to.be.calledWithMatch({ tmpDir: '/path/to/tmp' });
+            expect(storage.fileCache).to.be.equal(fileCacheStub);
         });
     });
 
@@ -34,7 +49,10 @@ describe('cache/cache-storage', function () {
                 }
             });
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.load();
             storage.save(); // the only way to check internal data contents is to save cache to file
@@ -49,7 +67,10 @@ describe('cache/cache-storage', function () {
                 }
             });
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.load();
             storage.save(); // the only way to check internal data contents is to save cache to file
@@ -64,7 +85,10 @@ describe('cache/cache-storage', function () {
                 }
             });
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.load();
             storage.save();
@@ -79,7 +103,10 @@ describe('cache/cache-storage', function () {
                 '/path/to': {}
             });
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.set('testPrefix', 'testKey', 'test_value');
             storage.save();
@@ -105,7 +132,10 @@ describe('cache/cache-storage', function () {
                 '/path/to': {}
             });
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_({
+                tmpDir: '/path/to/',
+                filename: 'test_file.json'
+            });
 
             storage.set('testPrefix', 'testKey', 'test_value');
 
@@ -120,7 +150,7 @@ describe('cache/cache-storage', function () {
 
         it('should write data to stream split in chunks by prefix', function () {
             var writeStream = sinon.createStubInstance(fs.WriteStream);
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_();
 
             sandbox.stub(fs, 'createWriteStream');
             fs.createWriteStream.returns(writeStream);
@@ -138,7 +168,7 @@ describe('cache/cache-storage', function () {
         it('should reject promise if error ocured during file write', function () {
             mockFs({});
 
-            var storage = createCacheStorage_('/path/to/test_file.json');
+            var storage = createCacheStorage_();
 
             storage.set('testPrefix', 'testKey', 'test_value');
 
@@ -197,10 +227,24 @@ describe('cache/cache-storage', function () {
             expect(storage.get('testPrefix', 'testKey')).to.be.undefined;
             expect(storage.get('another_test_prefix', 'another_test_key')).to.be.undefined;
         });
+
+        it('should drop file cache', function () {
+            sandbox.stub(FileCache.prototype, 'drop');
+            var storage = createCacheStorage_();
+
+            storage.drop();
+
+            expect(FileCache.prototype.drop).to.be.called;
+        });
     });
 
-    function createCacheStorage_(filename) {
-        return new CacheStorage(filename || '/path/to/default_file.json');
+    function createCacheStorage_(opts) {
+        opts = _.defaults(opts || {}, {
+            tmpDir: '/default/tmp/dir',
+            filename: 'default_file.json'
+        });
+
+        return new CacheStorage(opts);
     }
 
     function assertStorageData(dataPath, expected) {

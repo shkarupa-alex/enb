@@ -4,7 +4,6 @@ var _ = require('lodash');
 var MakePlatform = require('../../../lib/make');
 var CacheStorage = require('../../../lib/cache/cache-storage');
 var ProjectConfig = require('../../../lib/config/project-config');
-var FileCache = require('../../../lib/shared-resources/file-cache');
 var pkg = require('../../../lib/utils/package');
 var vowFs = require('vow-fs');
 var vow = require('vow');
@@ -18,7 +17,6 @@ describe('make/cache', function () {
         sandbox.stub(fs, 'statSync');
 
         sandbox.stub(ProjectConfig.prototype);
-        sandbox.stub(FileCache.prototype);
 
         sandbox.stub(pkg);
 
@@ -160,15 +158,6 @@ describe('make/cache', function () {
                     makePlatform.dropCache();
 
                     expect(cacheStorage.drop).to.be.called;
-                });
-        });
-
-        it('should drop file cache', function () {
-            return setup(cacheStorage)
-                .then(function (makePlatform) {
-                    makePlatform.dropCache();
-
-                    expect(FileCache.prototype.drop).to.be.called;
                 });
         });
     });

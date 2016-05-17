@@ -23,15 +23,19 @@ describe('make/constructor-destructor', function () {
             expect(makePlatform.getEnv()).to.be.instanceOf(Object)
                 .and.to.be.empty;
         });
+
+        it('should create container for shared resources', function () {
+            expect(makePlatform.getSharedResources()).to.be.instanceOf(SharedResources);
+        });
     });
 
     describe('destructor', function () {
-        it('should not destroy shared resources if not initialized', function () {
+        it('should destroy shared resources', function () {
             sandbox.stub(SharedResources.prototype);
 
             makePlatform.destruct();
 
-            expect(SharedResources.prototype.destruct).to.not.be.called;
+            expect(SharedResources.prototype.destruct).to.be.called;
         });
 
         it('should delete reference to project config', function () {
