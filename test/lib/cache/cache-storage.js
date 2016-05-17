@@ -27,7 +27,7 @@ describe('cache/cache-storage', function () {
 
             storage.load();
 
-            expect(fs.existsSync).to.be.calledWith('/path/to/test_file.json');
+            expect(fs.existsSync).to.be.calledWith(path.normalize('/path/to/test_file.json'));
         });
 
         it('should create FileCache instance', function () {
